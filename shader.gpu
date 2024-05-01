@@ -1,0 +1,105 @@
+
+
+// Vertex shader
+const vertexShaderSource = `
+attribute vec3 vertex;
+attribute vec3 normal;
+attribute vec2 texture;
+uniform mat4 ModelViewProjectionMatrix;
+varying vec3 vColor;
+varying vec2 vTexture;
+uniform vec3 diffuseColor, specularColor;
+uniform vec2 texball;
+uniform float scaler;
+
+mat4 translation(float tx, float ty, float tz) {
+    mat4 dst;
+
+    dst[0][0] = 1.0;
+    dst[0][ 1] = 0.0;
+    dst[0][ 2] = 0.0;
+    dst[0][ 3] = 0.0;
+    dst[1][ 0] = 0.0;
+    dst[1][ 1] = 1.0;
+    dst[1][ 2] = 0.0;
+    dst[1][ 3] = 0.0;
+    dst[2][ 0] = 0.0;
+    dst[2][ 1] = 0.0;
+    dst[2][ 2] = 1.0;
+    dst[2][ 3] = 0.0;
+    dst[3][ 0] = tx;
+    dst[3][ 1] = ty;
+    dst[3][ 2] = tz;
+    dst[3][ 3] = 1.0;
+
+    return dst;
+}
+
+mat4 scaling(float s){
+    mat4 dst;
+
+    dst[0][0] = s;
+    dst[0][ 1] = 0.0;
+    dst[0][ 2] = 0.0;
+    dst[0][ 3] = 0.0;
+    dst[1][ 0] = 0.0;
+    dst[1][ 1] = s;
+    dst[1][ 2] = 0.0;
+    dst[1][ 3] = 0.0;
+    dst[2][ 0] = 0.0;
+    dst[2][ 1] = 0.0;
+    dst[2][ 2] = s;
+    dst[2][ 3] = 0.0;
+    dst[3][ 0] = 0.0;
+    dst[3][ 1] = 0.0;
+    dst[3][ 2] = 0.0;
+    dst[3][ 3] = 1.0;
+
+    return dst;
+}
+
+void main() {
+    mat4 mtf = translation(-texball.x,-texball.y,0.0);
+    mat4 mtb = translation(texball.x,texball.y,0.0);
+    mat4 mscl = scaling(scaler);
+    vec4 vtf = mtf*vec4(texture,0.,1.);
+    vec4 vscl = mscl*vtf;
+    vec4 vtb = mtb*vscl;
+    vTexture = vec2(vtb.x,vtb.y);
+    vec3 norm = normalize(normal);
+    vec3 lightDir = vec3(1.0);
+    float lambertian = max(dot(norm, lightDir), 0.0);
+    float specular = 0.0;
+    if(lambertian > 0.0) {
+        vec3 R = reflect(-lightDir, norm);
+        vec3 V = normalize(-vertex);
+        float specAngle = max(dot(R, V), 0.0);
+        specular = pow(specAngle, 1.0);
+    }
+    vec3 ambientColor = vec3(0.1);
+    vColor = vec3(ambientColor + lambertian * diffuseColor + specular * specularColor);
+    gl_Position = ModelViewProjectionMatrix * vec4(vertex,1.0);
+}`;
+
+
+// Fragment shader
+const fragmentShaderSource = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+   precision highp float;
+#else
+   precision mediump float;
+#endif
+
+uniform vec4 color;
+varying vec3 vColor;
+varying vec2 vTexture;
+uniform sampler2D tmu;
+uniform vec3 diffuseColor;
+void main() {
+    vec4 tColor = texture2D(tmu, vTexture);
+    gl_FragColor = color;
+    gl_FragColor = tColor;
+    if(diffuseColor.x>-1.0){
+        gl_FragColor = vec4(diffuseColor,1.0);
+    }
+}`;
