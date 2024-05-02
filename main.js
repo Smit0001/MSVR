@@ -161,7 +161,18 @@ function draw() {
        combined transformation matrix, and send that to the shader program. */
     let modelViewProjection = m4.multiply(projection, matAccum1);
 
-    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
+    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, m4.identity());
+    gl.bindTexture(gl.TEXTURE_2D, camTex);
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        webCam
+    );
+    camSur.Draw();gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
 
     /* Draw the six faces of a cube, with different colors. */
     gl.uniform4fv(shProgram.iColor, [1, 1, 0, 1]);
@@ -177,21 +188,7 @@ function draw() {
     frustum.ApplyRightFrustum(gl, matAccum1)
     surface.Draw();
     gl.colorMask(true, true, true, true);
-}
-window.onkeydown = (e) => {
-    if (e.keyCode == 87) { //w
-        texball[0] = Math.min(texball[0] + 0.01, 1);
-    }
-    else if (e.keyCode == 65) { //a
-        texball[1] = Math.max(texball[1] - 0.01, 0);
-    }
-    else if (e.keyCode == 83) { //s
-        texball[0] = Math.max(texball[0] - 0.01, 0);
-    }
-    else if (e.keyCode == 68) { //d
-        texball[1] = Math.min(texball[1] + 0.01, 1);
-    }
-    draw();
+
 }
 function hexToRgb(hex) {
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -223,6 +220,7 @@ function LoadTexture() {
         console.log("imageLoaded")
         draw()
     }
+    return texture
 }
 
 function CreateSurfaceData() {
@@ -298,6 +296,10 @@ function update() {
     surface.BufferData(...CreateSurfaceData());
     draw();
 }
+function updateBackground(){
+    draw()
+    window.requestAnimationFrame(updateBackground)
+}
 const a = 0.1, n = 1, R = 0.1
 function CreateVertex(r, b) {
     const x = r * Math.cos(b),
@@ -306,7 +308,7 @@ function CreateVertex(r, b) {
     return [x, y, z]
 }
 
-
+let webCam, camTex, camSur;
 /* Initialize the WebGL context. Called from init() */
 function initGL() {
     let prog = createProgram(gl, vertexShaderSource, fragmentShaderSource);
@@ -324,6 +326,8 @@ function initGL() {
     shProgram.iTexball = gl.getUniformLocation(prog, "texball");
     shProgram.iScaler = gl.getUniformLocation(prog, "scaler");
 
+    webCam = readCamera()
+
     frustum = new StereoCamera(0.1, 0.01, 1, 1, 1, 20)
     // add frustum control directly to html
     addFrustumControl(frustum,
@@ -335,9 +339,16 @@ function initGL() {
 
     surface = new Model('Surface');
     surface.BufferData(...CreateSurfaceData());
+    camSur = new Model('Web cam');
+    camSur.BufferData(
+        [-1, -1, 0, 1, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 1, 0],
+        [-1, -1, 0, 1, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 1, 0],
+        [1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0]);
     let bd = CreateSphereData()
     ball = new Model()
     ball.BufferData(bd, bd, bd)
+
+    camTex = CreateCameraTexture()
 
     gl.enable(gl.DEPTH_TEST);
 }
@@ -409,12 +420,13 @@ function createProgram(gl, vShader, fShader) {
 /**
  * initialization function that will be called when the page has loaded
  */
+let tex;
 function init() {
     let canvas;
     try {
         canvas = document.getElementById("webglcanvas");
         gl = canvas.getContext("webgl");
-        LoadTexture()
+        tex = LoadTexture()
         if (!gl) {
             throw "Browser does not support WebGL";
         }
@@ -436,4 +448,25 @@ function init() {
     spaceball = new TrackballRotator(canvas, draw, 0);
 
     draw();
+    updateBackground()
+}
+
+function readCamera() {
+    const video = document.createElement('video');
+    video.setAttribute('autoplay', true);
+    navigator.getUserMedia({ video: true, audio: false }, function (stream) {
+        video.srcObject = stream;
+    }, function (e) {
+        console.error('Rejected!', e);
+    });
+    return video;
+}
+function CreateCameraTexture() {
+    const cameraTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, cameraTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return cameraTexture;
 }
