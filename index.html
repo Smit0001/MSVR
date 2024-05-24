@@ -2,7 +2,7 @@
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 
-<title>PA1</title>
+<title>rgr</title>
 <style>
     body {
         background-color: #EEEEEE;
@@ -31,8 +31,10 @@
 <input hidden type="color" name="color" id="color" value="#00FF00" onchange="draw()">
 <label for="colorS" hidden>Оберіть колір освітлення</label>
 <input type="color" name="colorS" id="colorS" value="#ffffff" onchange="draw()" hidden>
-
-
+<button onclick="initAudio()">start audio context</button>
+<audio id="audioElement" src="https://5fade639-57b9-48db-8eb3-e055c7465804-00-1ujorwj0rg3zv.janeway.replit.dev/zhyr.mp3" crossorigin="anonymous" controls loop></audio>
+    <label for="filterEnabled">lowpass-filter enabled</label>
+    <input type="checkbox" name="filterEnabled" id="filterEnabled" checked>
 <div id="canvas-holder">
    <canvas width="600" height="600" id="webglcanvas" style="background-color:red"></canvas>
 </div>

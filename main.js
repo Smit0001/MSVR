@@ -171,8 +171,14 @@ function draw() {
         gl.UNSIGNED_BYTE,
         webCam
     );
-    camSur.Draw();gl.clear(gl.DEPTH_BUFFER_BIT);
+    camSur.Draw(); gl.clear(gl.DEPTH_BUFFER_BIT);
     gl.bindTexture(gl.TEXTURE_2D, tex);
+    const now = Date.now() * 0.0005;
+    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, m4.translation(0.5 * Math.sin(now), 0.5 * Math.cos(now), 0));
+    if (audioPos) {
+        audioPos.setPosition(0.5 * Math.sin(now), 0.5 * Math.cos(now), 0)
+    }
+    ball.Draw(); gl.clear(gl.DEPTH_BUFFER_BIT);
 
     /* Draw the six faces of a cube, with different colors. */
     gl.uniform4fv(shProgram.iColor, [1, 1, 0, 1]);
@@ -296,7 +302,7 @@ function update() {
     surface.BufferData(...CreateSurfaceData());
     draw();
 }
-function updateBackground(){
+function updateBackground() {
     draw()
     window.requestAnimationFrame(updateBackground)
 }
@@ -346,7 +352,7 @@ function initGL() {
         [1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0]);
     let bd = CreateSphereData()
     ball = new Model()
-    ball.BufferData(bd, bd, bd)
+    ball.BufferData(bd, bd, new Array(bd.length).fill(0.8))
 
     camTex = CreateCameraTexture()
 
@@ -422,6 +428,7 @@ function createProgram(gl, vShader, fShader) {
  */
 let tex;
 function init() {
+
     let canvas;
     try {
         canvas = document.getElementById("webglcanvas");
@@ -469,4 +476,55 @@ function CreateCameraTexture() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     return cameraTexture;
+}
+
+let audioContext;
+let audio = null;
+let src,
+    lowpassFilter,
+    audioPos;
+
+function setupAudioListerners() {
+    audio = document.getElementById('audioElement');
+
+    audio.addEventListener('play', () => {
+        if (!audioContext) {
+            audioContext = new AudioContext();
+            src = audioContext.createMediaElementSource(audio);
+            audioPos = audioContext.createPanner();
+            lowpassFilter = audioContext.createBiquadFilter();
+
+            src.connect(audioPos);
+            audioPos.connect(lowpassFilter);
+            lowpassFilter.connect(audioContext.destination);
+
+            lowpassFilter.type = 'lowpass';
+            lowpassFilter.Q.value = 0.66;
+            lowpassFilter.frequency.value = 66;
+            // lowpassFilter.gain.value = 1; // Not used in this filter type
+            audioContext.resume();
+        }
+    })
+
+
+    audio.addEventListener('pause', () => {
+        console.log('pause');
+        audioContext.resume();
+    })
+}
+
+function initAudio() {
+    setupAudioListerners();
+    let filterListener = document.getElementById('filterEnabled');
+    filterListener.addEventListener('change', function () {
+        if (filterListener.checked) {
+            audioPos.disconnect();
+            audioPos.connect(lowpassFilter);
+            lowpassFilter.connect(audioContext.destination);
+        } else {
+            audioPos.disconnect();
+            audioPos.connect(audioContext.destination);
+        }
+    });
+    audio.play();
 }
