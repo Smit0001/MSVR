@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+<title>rgr</title>
+<style>
+    body {
+        background-color: #EEEEEE;
+    }
+</style>
+
+<script src="./Utils/trackball-rotator.js"></script>
+<script src="./Utils/m4.js"></script>
+<script src="./Utils/controlUtil.js"></script>
+<script src="./shader.gpu"></script>
+<script src="./main.js"></script>
+
+</head>
+<body onload="init()">
+
+<h2>A Cube with "Trackball" Mouse Rotation</h2>
+<label for="step">Крок між ребрами фігури (чим менше крок - тим більш деталізована фігура)</label>
+<input type="range" name="step" id="step" min ="0.005" max="0.1" step="0.001" value="0.001" onchange="update()" ><br>
+<label for="scaler">Оберіть степінь масштабування текстури</label>
+<input type="range" name="scaler" id="scaler" min ="0.5" max="5" step="0.1" value="1" onchange="draw()" >
+
+<p id="message">Drag your mouse on the cube to rotate it.<br>
+(On a touch screen, you can use your finger.)</p>
+
+<label hidden for="color">Оберіть колір мʼячика</label>
+<input hidden type="color" name="color" id="color" value="#00FF00" onchange="draw()">
+<label for="colorS" hidden>Оберіть колір освітлення</label>
+<input type="color" name="colorS" id="colorS" value="#ffffff" onchange="draw()" hidden>
+<button onclick="initAudio()">start audio context</button>
+<audio id="audioElement" src="https://raw.githubusercontent.com/Smit0001/MSVR/CGW/Gorillaz%20-%20Feel%20Good%20Inc.mp3" crossorigin="anonymous" controls loop></audio>
+    <label for="filterEnabled">lowpass-filter enabled</label>
+    <input type="checkbox" name="filterEnabled" id="filterEnabled" checked>
+<div id="canvas-holder">
+   <canvas width="600" height="600" id="webglcanvas" style="background-color:red"></canvas>
+</div>
+
+
+</body></html>
